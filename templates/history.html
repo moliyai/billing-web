@@ -1,0 +1,162 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ t.history.title }}{% endblock %}
+{% block breadcrumb %}{{ t.history.breadcrumb }}{% endblock %}
+
+{% block content %}
+<!-- Page Header & Export Actions -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900">{{ t.history.heading }}</h2>
+        <p class="text-xs sm:text-sm text-zinc-500 mt-0.5">{{ t.history.subheading }}</p>
+    </div>
+    <!-- Export Buttons: Full width on mobile, auto width on desktop -->
+    <div class="flex items-center gap-2 w-full sm:w-auto">
+        <a href="{% url 'export_logs_csv' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 transition">
+            <svg class="w-4 h-4 text-zinc-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 16.5v2.25A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75V16.5M16.5 12L12 16.5m0 0L7.5 12m4.5 4.5V3"/></svg>
+            <span>{{ t.history.export_csv }}</span>
+        </a>
+        <a href="{% url 'export_logs_json' %}?start_date={{ start_date }}&end_date={{ end_date }}" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 rounded-lg border border-zinc-200 bg-white px-3 py-2 text-xs sm:text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 transition">
+            <svg class="w-4 h-4 text-zinc-500 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 9l3 3-3 3m5 0h3M5 20h14a2 2 0 002-2V6a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z"/></svg>
+            <span>{{ t.history.export_json }}</span>
+        </a>
+    </div>
+</div>
+
+<!-- Filters Bar (Progressive Responsive Grid: 1 col -> 2 cols -> 4 cols) -->
+<div class="rounded-xl border border-zinc-200 bg-white p-4 shadow-sm">
+    <form method="GET" action="{% url 'history' %}" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+        <!-- Start Date -->
+        <div>
+            <label class="block text-xs font-medium text-zinc-600 mb-1">{{ t.history.start_date }}</label>
+            <input type="date" name="start_date" value="{{ start_date }}" class="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 sm:py-1.5 text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition">
+        </div>
+
+        <!-- End Date -->
+        <div>
+            <label class="block text-xs font-medium text-zinc-600 mb-1">{{ t.history.end_date }}</label>
+            <input type="date" name="end_date" value="{{ end_date }}" class="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 sm:py-1.5 text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition">
+        </div>
+
+        <!-- Items Per Page -->
+        <div>
+            <label class="block text-xs font-medium text-zinc-600 mb-1">{{ t.history.items_per_page }}</label>
+            <select name="items_per_page" class="w-full rounded-lg border border-zinc-200 bg-zinc-50/50 px-3 py-2 sm:py-1.5 text-xs text-zinc-900 focus:outline-none focus:ring-2 focus:ring-zinc-900 transition">
+                <option value="5" {% if meta.itemsPerPage == 5 %}selected{% endif %}>5 {{ t.history.per_page }}</option>
+                <option value="10" {% if meta.itemsPerPage == 10 %}selected{% endif %}>10 {{ t.history.per_page }}</option>
+                <option value="25" {% if meta.itemsPerPage == 25 %}selected{% endif %}>25 {{ t.history.per_page }}</option>
+                <option value="50" {% if meta.itemsPerPage == 50 %}selected{% endif %}>50 {{ t.history.per_page }}</option>
+            </select>
+        </div>
+
+        <!-- Submit Button -->
+        <div class="flex items-end">
+            <button type="submit" class="w-full rounded-lg bg-zinc-900 text-white px-4 py-2 sm:py-1.5 text-xs font-medium hover:bg-zinc-800 transition active:scale-[0.99]">
+                {{ t.history.apply_filters }}
+            </button>
+        </div>
+    </form>
+</div>
+
+<!-- Main Prediction Logs Data Table -->
+<div class="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+    <div class="p-4 border-b border-zinc-200 flex flex-col sm:flex-row sm:items-center justify-between gap-1 sm:gap-4">
+        <h3 class="text-sm font-semibold text-zinc-900">{{ t.history.table_title }}</h3>
+        <span class="text-xs text-zinc-500">{{ t.history.total_api_records }}: <strong class="text-zinc-900">{{ meta.totalItems|default:0 }}</strong></span>
+    </div>
+
+    <!-- Responsive Table Wrapper -->
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs min-w-[640px]">
+            <thead class="bg-zinc-50 text-zinc-500 uppercase font-medium border-b border-zinc-200">
+                <tr>
+                    <th class="px-4 py-3 whitespace-nowrap">{{ t.history.th_date_time }}</th>
+                    <th class="px-4 py-3 whitespace-nowrap">{{ t.history.th_pinfl }}</th>
+                    <th class="px-4 py-3 whitespace-nowrap">{{ t.history.th_branch }}</th>
+                    <th class="px-4 py-3 whitespace-nowrap">{{ t.history.th_probabilities }}</th>
+                    <th class="px-4 py-3 whitespace-nowrap">{{ t.history.th_decision }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-200 font-mono text-zinc-700">
+                {% for log in logs %}
+                <tr class="hover:bg-zinc-50/80 transition">
+                    <!-- Date -->
+                    <td class="px-4 py-3 text-zinc-500 font-sans whitespace-nowrap">{{ log.prediction_date }}</td>
+
+                    <!-- PINFL -->
+                    <td class="px-4 py-3 text-zinc-800 whitespace-nowrap">{{ log.pinfl }}</td>
+
+                    <!-- Branch -->
+                    <td class="px-4 py-3 text-zinc-600 font-sans capitalize whitespace-nowrap">{{ log.branch }}</td>
+
+                    <!-- Good / Bad Probabilities -->
+                    <td class="px-4 py-3 font-sans whitespace-nowrap">
+                        <div class="flex items-center gap-2 text-[11px]">
+                            <span class="text-emerald-700 font-medium">{{ t.history.good }}: {{ log.good_prob }}%</span>
+                            <span class="text-zinc-300">|</span>
+                            <span class="text-rose-700 font-medium">{{ t.history.bad }}: {{ log.bad_prob }}%</span>
+                        </div>
+                        <div class="w-28 bg-rose-100 rounded-full h-1 mt-1 overflow-hidden">
+                            <div class="bg-emerald-500 h-1 rounded-full" style="width: {{ log.good_prob }}%;"></div>
+                        </div>
+                    </td>
+
+                    <!-- Decision Badge -->
+                    <td class="px-4 py-3 font-sans whitespace-nowrap">
+                        {% if log.prediction == "Approved" %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-emerald-50 text-emerald-700 border border-emerald-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-emerald-500"></span>
+                                {{ t.history.approved }}
+                            </span>
+                        {% else %}
+                            <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[11px] font-medium bg-rose-50 text-rose-700 border border-rose-200">
+                                <span class="w-1.5 h-1.5 rounded-full bg-rose-500"></span>
+                                {{ t.history.not_approved }}
+                            </span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <!-- Fixed Colspan bug (changed 7 to 5) -->
+                    <td colspan="5" class="px-4 py-8 text-center text-zinc-500 font-sans">
+                        {{ t.history.no_logs }}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Pagination Controls -->
+    <div class="p-4 border-t border-zinc-200 bg-zinc-50/50 flex flex-col sm:flex-row items-center justify-between gap-3 text-xs text-zinc-600 font-sans">
+        <span>
+            {{ t.history.page }} <strong>{{ meta.currentPage|default:1 }}</strong> {{ t.history.of }} <strong>{{ meta.lastPage|default:1 }}</strong>
+        </span>
+
+        <div class="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
+            {% if meta.currentPage > 1 %}
+            <a href="?page={{ meta.currentPage|add:'-1' }}&start_date={{ start_date }}&end_date={{ end_date }}&items_per_page={{ meta.itemsPerPage }}"
+               class="flex-1 sm:flex-initial text-center px-3.5 py-2 sm:py-1.5 bg-white border border-zinc-200 rounded-lg shadow-sm text-zinc-700 hover:bg-zinc-50 font-medium transition">
+                ← {{ t.history.previous }}
+            </a>
+            {% else %}
+            <span class="flex-1 sm:flex-initial text-center px-3.5 py-2 sm:py-1.5 bg-zinc-100 border border-zinc-200/60 rounded-lg text-zinc-400 cursor-not-allowed">
+                ← {{ t.history.previous }}
+            </span>
+            {% endif %}
+
+            {% if meta.currentPage < meta.lastPage %}
+            <a href="?page={{ meta.currentPage|add:'1' }}&start_date={{ start_date }}&end_date={{ end_date }}&items_per_page={{ meta.itemsPerPage }}"
+               class="flex-1 sm:flex-initial text-center px-3.5 py-2 sm:py-1.5 bg-white border border-zinc-200 rounded-lg shadow-sm text-zinc-700 hover:bg-zinc-50 font-medium transition">
+                {{ t.history.next }} →
+            </a>
+            {% else %}
+            <span class="flex-1 sm:flex-initial text-center px-3.5 py-2 sm:py-1.5 bg-zinc-100 border border-zinc-200/60 rounded-lg text-zinc-400 cursor-not-allowed">
+                {{ t.history.next }} →
+            </span>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

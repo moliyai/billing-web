@@ -1,0 +1,325 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ t.main.title }}{% endblock %}
+{% block breadcrumb %}{{ t.main.breadcrumb }}{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+    <div>
+        <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900">{{ t.main.usage_overview }}</h2>
+        <p class="text-xs sm:text-sm text-zinc-500 mt-0.5">{{ t.main.usage_subtitle }}</p>
+    </div>
+
+    <!-- Actions & Auto-Refresh Control -->
+    <div class="flex flex-wrap items-center gap-2 sm:gap-3">
+        <!-- Auto Refresh Toggle Dropdown / Button -->
+        <div class="inline-flex items-center rounded-lg border border-zinc-200 bg-white px-3 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-zinc-700 shadow-sm gap-2">
+            <span class="relative flex h-2 w-2">
+              <span id="pulse-indicator" class="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
+            </span>
+            <span class="text-xs text-zinc-600 hidden xs:inline">{{ t.main.auto_refresh }}</span>
+            <select id="autoRefreshSelect" class="bg-transparent text-xs font-semibold text-zinc-900 focus:outline-none cursor-pointer">
+                <option value="0">{{ t.main.off }}</option>
+                <option value="15">15s</option>
+                <option value="30" selected>30s</option>
+                <option value="60">1m</option>
+            </select>
+        </div>
+
+        <a href="{% url 'history' %}" class="inline-flex items-center justify-center rounded-lg border border-zinc-200 bg-white px-3 sm:px-3.5 py-1.5 sm:py-2 text-xs sm:text-sm font-medium text-zinc-700 shadow-sm hover:bg-zinc-50 transition">
+            {{ t.main.view_request_logs }}
+        </a>
+    </div>
+</div>
+
+<!-- Dynamic Pocket Progress Widget -->
+<div class="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 shadow-sm relative overflow-hidden">
+    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3 sm:gap-4 mb-4">
+        <div>
+            <div class="flex items-center gap-2">
+                <span class="text-xs font-semibold uppercase tracking-wider text-zinc-500">{{ t.main.active_tier_bracket }}</span>
+                <span class="inline-flex items-center rounded-md bg-zinc-100 px-2 py-0.5 text-xs font-medium text-zinc-800 border border-zinc-200">
+                    {{ pocket_info.pocket_name }}
+                </span>
+            </div>
+            <h3 class="text-lg sm:text-xl font-bold text-zinc-900 mt-1">
+                {{ month_requests }} <span class="text-xs sm:text-sm font-normal text-zinc-500">/ {{ pocket_info.requests_count }} {{ t.main.api_requests }}</span>
+            </h3>
+        </div>
+        <div class="text-left md:text-right">
+            <span class="text-xs text-zinc-500">{{ t.main.current_unit_rate }}</span>
+            <p class="text-base sm:text-lg font-semibold text-emerald-600">${{ pocket_info.price_per_request_over_limit }} <span class="text-xs font-normal text-zinc-500">{{ t.main.per_request }}</span></p>
+        </div>
+    </div>
+
+    <!-- Dynamic Progress Bar -->
+    <div class="w-full bg-zinc-100 rounded-full h-3 mb-3 overflow-hidden p-0.5 border border-zinc-200/50">
+        <div class="bg-zinc-900 h-2 rounded-full transition-all duration-500" style="width: {{ pocket_info.progress_pct }}%;"></div>
+    </div>
+
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-xs text-zinc-500">
+        <span class="flex items-center gap-1 font-medium text-zinc-700">
+            {% if pocket_info.over_limit_count > 0 %}
+                <span class="text-amber-600 font-semibold">{{ t.main.over_limit_requests }}: {{ pocket_info.over_limit_count }}</span>
+            {% else %}
+                {{ t.main.requests_remaining }}: {{ pocket_info.remaining }}
+            {% endif %}
+        </span>
+        <span class="text-zinc-600">
+            {{ t.main.pocket_base_price }} <strong class="text-zinc-900">${{ pocket_info.price }}</strong>
+        </span>
+    </div>
+</div>
+
+<!-- 4 Real Metric Cards (Fluid Font Sizes) -->
+<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
+    <!-- Today -->
+    <div class="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5 shadow-sm space-y-2">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-zinc-500">{{ t.main.today }}</span>
+            <span class="text-xs px-2 py-0.5 rounded bg-emerald-50 text-emerald-700 border border-emerald-100 font-medium">{{ t.main.live }}</span>
+        </div>
+        <div>
+            <div class="text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 tracking-tight">{{ today_requests }}</div>
+        </div>
+    </div>
+
+    <!-- Yesterday -->
+    <div class="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5 shadow-sm space-y-2">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-zinc-500">{{ t.main.yesterday }}</span>
+            <span class="text-xs text-zinc-400">{{ t.main.finalized }}</span>
+        </div>
+        <div>
+            <div class="text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 tracking-tight">{{ yesterday_requests }}</div>
+        </div>
+    </div>
+
+    <!-- This Week -->
+    <div class="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5 shadow-sm space-y-2">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-zinc-500">{{ t.main.seven_day_run }}</span>
+            <span class="text-xs text-zinc-400">{{ t.main.rolling }}</span>
+        </div>
+        <div>
+            <div class="text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 tracking-tight">{{ week_requests }}</div>
+        </div>
+    </div>
+
+    <!-- This Month -->
+    <div class="rounded-xl border border-zinc-200 bg-white p-4 sm:p-5 shadow-sm space-y-2">
+        <div class="flex items-center justify-between">
+            <span class="text-xs font-medium text-zinc-500">{{ t.main.this_month }}</span>
+            <span class="text-xs font-semibold text-zinc-900 bg-zinc-100 px-1.5 py-0.5 rounded">{{ t.main.mtd }}</span>
+        </div>
+        <div>
+            <div class="text-3xl sm:text-4xl lg:text-5xl font-bold text-zinc-900 tracking-tight">{{ month_requests }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Real Analytics Charts -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-4 sm:gap-6">
+    <!-- Hourly Activity Chart -->
+    <div class="lg:col-span-2 rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 shadow-sm">
+        <div class="flex items-center justify-between mb-4 gap-2">
+            <div>
+                <h3 class="text-sm sm:text-base font-semibold text-zinc-900">{{ t.main.hourly_velocity }}</h3>
+                <p class="text-xs text-zinc-500">{{ t.main.hourly_subtitle }}</p>
+            </div>
+            <span class="text-xs text-emerald-600 font-semibold bg-emerald-50 px-2 py-1 rounded border border-emerald-100 shrink-0">
+                {{ t.main.approval_rate }} {{ approval_rate }}%
+            </span>
+        </div>
+        <div class="h-48 sm:h-64 w-full">
+            <canvas id="hourlyChart"></canvas>
+        </div>
+    </div>
+
+    <!-- Branch Distribution Card -->
+    <div class="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 shadow-sm flex flex-col justify-between">
+        <div>
+            <h3 class="text-sm sm:text-base font-semibold text-zinc-900 mb-0.5">{{ t.main.branch_breakdown }}</h3>
+            <p class="text-xs text-zinc-500 mb-4">{{ t.main.branch_subtitle }}</p>
+
+            <div class="space-y-3">
+                {% for branch, count in branch_breakdown.items %}
+                <div>
+                    <div class="flex justify-between text-xs mb-1">
+                        <span class="font-medium text-zinc-700 capitalize">{{ branch }}</span>
+                        <span class="text-zinc-500">{{ count }} {{ t.main.requests }}</span>
+                    </div>
+                    <div class="w-full bg-zinc-100 rounded-full h-2 overflow-hidden">
+                        <div class="bg-zinc-900 h-2 rounded-full" style="width: {% if today_requests > 0 %}{% widthratio count today_requests 100 %}{% else %}0{% endif %}%;"></div>
+                    </div>
+                </div>
+                {% empty %}
+                <p class="text-xs text-zinc-400 italic">{{ t.main.no_branch_data }}</p>
+                {% endfor %}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Trend Charts: 30-Day Usage -->
+<div class="grid grid-cols-1 gap-6">
+    <div class="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 shadow-sm">
+        <div class="mb-4">
+            <h3 class="text-sm sm:text-base font-semibold text-zinc-900">{{ t.main.usage_30d_trend }}</h3>
+            <p class="text-xs text-zinc-500">{{ t.main.usage_30d_subtitle }}</p>
+        </div>
+        <div class="h-48 sm:h-64 w-full">
+            <canvas id="usage30dChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<!-- Trend Chart: 7-Day Approval Rate -->
+<div class="grid grid-cols-1 gap-6">
+    <div class="rounded-xl border border-zinc-200 bg-white p-4 sm:p-6 shadow-sm">
+        <div class="mb-4">
+            <h3 class="text-sm sm:text-base font-semibold text-zinc-900">{{ t.main.approval_7d_rate }}</h3>
+            <p class="text-xs text-zinc-500">{{ t.main.approval_7d_subtitle }}</p>
+        </div>
+        <div class="h-44 sm:h-56 w-full">
+            <canvas id="approval7dChart"></canvas>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        Chart.defaults.font.family = 'Inter, sans-serif';
+
+        // 1. Setup Hourly Chart
+        const hourlyData = {{ hourly_chart_data|safe }};
+        const labels = Array.from({length: 24}, (_, i) => `${i.toString().padStart(2, '0')}:00`);
+
+        const ctx = document.getElementById('hourlyChart').getContext('2d');
+        new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'API Calls',
+                    data: hourlyData,
+                    borderColor: '#18181b',
+                    backgroundColor: 'rgba(24, 24, 27, 0.05)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: { autoSkip: true, maxTicksLimit: 8 }
+                    },
+                    y: { border: { dash: [4, 4] }, grid: { color: '#f4f4f5' }, beginAtZero: true }
+                }
+            }
+        });
+
+        // 2. 30-Day Usage Chart
+        const usage30dLabels = {{ usage_30d_labels|safe }};
+        const usage30dData = {{ usage_30d_data|safe }};
+        new Chart(document.getElementById('usage30dChart').getContext('2d'), {
+            type: 'bar',
+            data: {
+                labels: usage30dLabels,
+                datasets: [{
+                    label: 'Requests',
+                    data: usage30dData,
+                    backgroundColor: 'rgba(24, 24, 27, 0.75)',
+                    borderRadius: 3,
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { autoSkip: true, maxTicksLimit: 7 } },
+                    y: { border: { dash: [4, 4] }, grid: { color: '#f4f4f5' }, beginAtZero: true }
+                }
+            }
+        });
+
+        // 3. 7-Day Approval Rate Chart
+        const approval7dLabels = {{ approval_7d_labels|safe }};
+        const approval7dData = {{ approval_7d_data|safe }};
+        new Chart(document.getElementById('approval7dChart').getContext('2d'), {
+            type: 'line',
+            data: {
+                labels: approval7dLabels,
+                datasets: [{
+                    label: 'Approval Rate (%)',
+                    data: approval7dData,
+                    borderColor: '#059669',
+                    backgroundColor: 'rgba(5, 150, 105, 0.08)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.3,
+                    pointRadius: 3
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: {
+                    x: { grid: { display: false }, ticks: { autoSkip: true, maxTicksLimit: 7 } },
+                    y: {
+                        border: { dash: [4, 4] },
+                        grid: { color: '#f4f4f5' },
+                        beginAtZero: true,
+                        max: 100,
+                        ticks: { callback: (val) => val + '%' }
+                    }
+                }
+            }
+        });
+
+        // 4. Auto-Refresh Logic with localStorage persistence
+        const selectEl = document.getElementById('autoRefreshSelect');
+        const pulseIndicator = document.getElementById('pulse-indicator');
+        let refreshTimer = null;
+
+        const savedInterval = localStorage.getItem('dashboard_refresh_interval');
+        if (savedInterval !== null) {
+            selectEl.value = savedInterval;
+        }
+
+        function setupRefresh(seconds) {
+            if (refreshTimer) clearInterval(refreshTimer);
+
+            const sec = parseInt(seconds, 10);
+            if (sec > 0) {
+                pulseIndicator.style.display = 'inline-flex';
+                refreshTimer = setInterval(() => {
+                    window.location.reload();
+                }, sec * 1000);
+            } else {
+                pulseIndicator.style.display = 'none';
+            }
+        }
+
+        setupRefresh(selectEl.value);
+
+        selectEl.addEventListener('change', function () {
+            const val = this.value;
+            localStorage.setItem('dashboard_refresh_interval', val);
+            setupRefresh(val);
+        });
+    });
+</script>
+{% endblock %}

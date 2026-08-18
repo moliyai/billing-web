@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+
+{% block title %}{{ t.pricing.title }}{% endblock %}
+{% block breadcrumb %}{{ t.pricing.breadcrumb }}{% endblock %}
+
+{% block content %}
+<!-- Page Heading -->
+<div class="max-w-3xl">
+    <h2 class="text-xl sm:text-2xl font-bold tracking-tight text-zinc-900">{{ t.pricing.heading }}</h2>
+    <p class="text-xs sm:text-sm text-zinc-500 mt-0.5">{{ t.pricing.subheading }}</p>
+</div>
+
+<!-- Active Status Banner -->
+<div class="rounded-xl border border-emerald-200 bg-emerald-50/60 p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-3 sm:gap-4">
+    <div class="flex items-center gap-3">
+        <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center font-bold text-base sm:text-lg shrink-0 shadow-sm">✓</div>
+        <div>
+            <span class="text-[11px] sm:text-xs font-semibold text-emerald-800 uppercase tracking-wide">{{ t.pricing.banner_status_title }}</span>
+            <h3 class="text-sm sm:text-base font-bold text-zinc-900">{{ t.pricing.current_position }}: {{ pocket_info.pocket_name }}</h3>
+            <p class="text-xs text-zinc-600">
+                {{ t.pricing.mtd_volume }}: <strong>{{ month_count }} {{ t.pricing.requests }}</strong>
+            </p>
+        </div>
+    </div>
+    {% if pocket_info.over_limit_count > 0 %}
+    <div class="text-left sm:text-right">
+        <span class="inline-flex items-center px-2.5 py-1 rounded-md bg-amber-100 text-amber-800 text-xs font-semibold border border-amber-200">
+            {{ pocket_info.over_limit_count }} {{ t.main.over_limit_requests }}
+        </span>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Pricing Matrix Table -->
+<div class="rounded-xl border border-zinc-200 bg-white overflow-hidden shadow-sm">
+    <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs min-w-[600px]">
+            <thead class="bg-zinc-50 text-zinc-500 uppercase font-medium border-b border-zinc-200">
+                <tr>
+                    <th class="px-4 sm:px-6 py-3.5 whitespace-nowrap">{{ t.pricing.th_bracket_name }}</th>
+                    <th class="px-4 sm:px-6 py-3.5 whitespace-nowrap">{{ t.pricing.th_monthly_requests }}</th>
+                    <th class="px-4 sm:px-6 py-3.5 whitespace-nowrap">{{ t.pricing.th_discount }}</th>
+                    <th class="px-4 sm:px-6 py-3.5 whitespace-nowrap">{{ t.pricing.th_price_per_request }}</th>
+                    <th class="px-4 sm:px-6 py-3.5 text-right whitespace-nowrap">{{ t.pricing.th_status }}</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-zinc-200">
+                {% for pocket in pockets %}
+                <tr class="{% if current_pocket and current_pocket.id == pocket.id %}bg-emerald-50/50 font-semibold border-l-4 border-l-emerald-500{% else %}hover:bg-zinc-50/80 transition{% endif %}">
+                    <!-- Pocket Name -->
+                    <td class="px-4 sm:px-6 py-3.5 sm:py-4 text-zinc-900 font-medium whitespace-nowrap">{{ pocket.name }}</td>
+
+                    <!-- Included Monthly Requests -->
+                    <td class="px-4 sm:px-6 py-3.5 sm:py-4 text-zinc-600 font-mono whitespace-nowrap">{{ pocket.requests_count }} {{ t.pricing.requests }}</td>
+
+                    <!-- Base Monthly Price -->
+                    <td class="px-4 sm:px-6 py-3.5 sm:py-4 font-mono text-zinc-900 font-semibold whitespace-nowrap">${{ pocket.price }}</td>
+
+                    <!-- Price Per Request Over Limit -->
+                    <td class="px-4 sm:px-6 py-3.5 sm:py-4 font-mono text-emerald-600 whitespace-nowrap">${{ pocket.price_per_request_over_limit }}</td>
+
+                    <!-- Active Badge -->
+                    <td class="px-4 sm:px-6 py-3.5 sm:py-4 text-right whitespace-nowrap">
+                        {% if current_pocket and current_pocket.id == pocket.id %}
+                            <span class="px-2.5 py-1 rounded-full bg-emerald-600 text-white font-semibold text-[11px] shadow-sm">{{ t.pricing.active_tier }}</span>
+                        {% else %}
+                            <span class="text-zinc-400">-</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% empty %}
+                <tr>
+                    <td colspan="5" class="px-4 sm:px-6 py-8 text-center text-zinc-400 italic">
+                        No pricing pockets configured.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

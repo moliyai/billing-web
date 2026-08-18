@@ -1,0 +1,2 @@
+- [ ] Auth for every company
+- [ ] Pockets based pricing
